@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevOps Fortune</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0b0f1a;
+      --card: rgba(255, 255, 255, 0.06);
+      --border: rgba(255, 255, 255, 0.12);
+      --text: #eef2ff;
+      --muted: #8b93b0;
+      --accent1: #7c6cff;
+      --accent2: #38d9c8;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* glowing background orbs */
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(110px);
+      opacity: 0.45;
+      animation: drift 14s ease-in-out infinite alternate;
+    }
+    .orb-1 { width: 480px; height: 480px; background: #5b46f0; top: -140px; left: -120px; }
+    .orb-2 { width: 420px; height: 420px; background: #0e8f83; bottom: -140px; right: -100px; animation-delay: -7s; }
+    @keyframes drift {
+      from { transform: translate(0, 0) scale(1); }
+      to   { transform: translate(60px, 40px) scale(1.15); }
+    }
+
+    .card {
+      position: relative;
+      z-index: 1;
+      width: min(640px, 92vw);
+      padding: 3rem 2.75rem 2.5rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      backdrop-filter: blur(18px);
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+      text-align: center;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent2);
+      margin-bottom: 1.25rem;
+    }
+    .eyebrow::before, .eyebrow::after {
+      content: "";
+      width: 28px;
+      height: 1px;
+      background: currentColor;
+      opacity: 0.5;
+    }
+
+    h1 {
+      font-size: clamp(1.9rem, 4.5vw, 2.6rem);
+      font-weight: 800;
+      margin-bottom: 2rem;
+      background: linear-gradient(90deg, var(--accent1), var(--accent2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .quote-box { min-height: 130px; }
+    #quote {
+      font-size: clamp(1.15rem, 2.8vw, 1.45rem);
+      line-height: 1.55;
+      font-style: italic;
+      transition: opacity 0.25s ease;
+    }
+    #author {
+      margin-top: 0.9rem;
+      font-size: 0.95rem;
+      color: var(--muted);
+      transition: opacity 0.25s ease;
+    }
+    .fading #quote, .fading #author { opacity: 0; }
+
+    button {
+      margin-top: 1.9rem;
+      padding: 0.85rem 2.4rem;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fff;
+      background: linear-gradient(90deg, var(--accent1), var(--accent2));
+      border: none;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      box-shadow: 0 10px 30px rgba(124, 108, 255, 0.35);
+    }
+    button:hover { transform: translateY(-2px); box-shadow: 0 14px 38px rgba(124, 108, 255, 0.5); }
+    button:active { transform: translateY(0); }
+
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-top: 2.2rem;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.45rem 1rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+    }
+    .chip .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent2);
+      box-shadow: 0 0 8px var(--accent2);
+    }
+    .chip strong { color: var(--text); font-weight: 600; }
+
+    footer {
+      margin-top: 1.8rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+
+  <main class="card">
+    <span class="eyebrow">Kubernetes Demo</span>
+    <h1>DevOps Fortune</h1>
+
+    <div class="quote-box" id="quoteBox">
+      <p id="quote">Loading wisdom…</p>
+      <p id="author"></p>
+    </div>
+
+    <button id="btn" onclick="fetchQuote()">✨ New Fortune</button>
+
+    <div class="stats">
+      <span class="chip"><span class="dot"></span> served by <strong id="pod">…</strong></span>
+      <span class="chip">requests <strong id="hits">0</strong></span>
+    </div>
+
+    <footer>frontend: nginx &middot; backend: python &middot; running on kind</footer>
+  </main>
+
+  <script>
+    const box = document.getElementById("quoteBox");
+
+    async function fetchQuote() {
+      box.classList.add("fading");
+      try {
+        const res = await fetch("/api/quote");
+        const data = await res.json();
+        setTimeout(() => {
+          document.getElementById("quote").textContent = "“" + data.quote + "”";
+          document.getElementById("author").textContent = "— " + data.author;
+          document.getElementById("pod").textContent = data.pod;
+          document.getElementById("hits").textContent = data.hits;
+          box.classList.remove("fading");
+        }, 250);
+      } catch (err) {
+        document.getElementById("quote").textContent = "Backend unreachable 😢";
+        document.getElementById("author").textContent = String(err);
+        box.classList.remove("fading");
+      }
+    }
+
+    fetchQuote();
+  </script>
+</body>
+</html>
