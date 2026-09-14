@@ -1,0 +1,73 @@
+name: Test App
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  # Job 1: run the backend directly (no docker, no frontend)
+  # and check that the API behaves correctly.
+  backend-api-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Start backend
+        run: |
+          python3 backend/server.py &
+          sleep 2
+
+      - name: Test health endpoint
+        run: curl -sf http://localhost:8000/api/health
+
+      - name: Test random quote endpoint
+        run: curl -sf http://localhost:8000/api/quote
+
+      - name: Test full quote list
+        run: |
+          curl -sf http://localhost:8000/api/quotes -o quotes.json
+          python3 - <<'EOF'
+          import json
+          data = json.load(open("quotes.json"))
+          assert data["count"] == len(data["quotes"]), "count does not match list length"
+          assert data["count"] > 0, "quote list is empty"
+          for q in data["quotes"]:
+              assert q["text"].strip(), "quote with empty text"
+              assert q["author"].strip(), "quote with empty author"
+          print(f"backend API OK: {data['count']} quotes")
+          EOF
+
+  # Job 2: build both images, run them together like in the cluster,
+  # and test the app through the nginx frontend.
+  full-app-test:
+    runs-on: ubuntu-latest
+    needs: backend-api-test
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build images
+        run: |
+          docker build -t fortune-backend:test backend
+          docker build -t fortune-frontend:test frontend
+
+      - name: Run the app
+        run: |
+          docker network create app-net
+          docker run -d --name backend --network app-net fortune-backend:test
+          docker run -d --name frontend --network app-net -p 8080:8080 fortune-frontend:test
+          sleep 2
+
+      - name: Test frontend page
+        run: curl -sf http://localhost:8080/ | grep -q "DevOps Fortune"
+
+      - name: Test API through the nginx proxy
+        run: curl -sf http://localhost:8080/api/quote
+
+      - name: Show container logs on failure
+        if: failure()
+        run: |
+          docker ps -a
+          docker logs backend || true
+          docker logs frontend || true
