@@ -42,6 +42,14 @@ class Handler(BaseHTTPRequestHandler):
                 "pod": POD_NAME,
                 "hits": hits,
             })
+        elif self.path == "/api/quotes":
+            # Full, deterministic quote list - meant for automated tests
+            # that need to assert on content without the frontend.
+            self._json(200, {
+                "count": len(QUOTES),
+                "quotes": QUOTES,
+                "pod": POD_NAME,
+            })
         elif self.path == "/api/health":
             self._json(200, {"status": "ok", "pod": POD_NAME})
         else:
@@ -50,5 +58,6 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, *args):
         pass  # keep pod logs quiet
 
-print(f"Backend listening on :8000 (pod: {POD_NAME})", flush=True)
-HTTPServer(("0.0.0.0", 8000), Handler).serve_forever()
+PORT = int(os.environ.get("PORT", "8000"))
+print(f"Backend listening on :{PORT} (pod: {POD_NAME})", flush=True)
+HTTPServer(("0.0.0.0", PORT), Handler).serve_forever()
